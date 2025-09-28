@@ -1,11 +1,64 @@
 import { Bot, InlineKeyboard } from "grammy";
 import dotenv from "dotenv";
 import axios from "axios";
+import http from "http";
+import https from "https";
 dotenv.config();
 
 const userHistory = new Map(); // To store user chat history
 const suggestionsMap = new Map(); // To map suggestions to their indices
-const bot = new Bot(process.env.BOT_TOKEN || "");
+const token = process.env.BOT_TOKEN;
+if (!token) {
+  console.error(
+    "Missing BOT_TOKEN. Set it in .env or as an environment variable."
+  );
+  process.exit(1);
+}
+const bot = new Bot(token);
+
+// Global error handler so the bot does not crash on runtime errors
+bot.catch(async (err) => {
+  console.error("BotError", err);
+  try {
+    await err.ctx.reply(
+      "Sorry, something went wrong while processing your request. Please try again."
+    );
+  } catch {}
+});
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// Axios client hardened for flaky networks (disable keep-alive, set timeout)
+const axiosClient = axios.create({
+  timeout: 15000,
+  httpAgent: new http.Agent({ keepAlive: false }),
+  httpsAgent: new https.Agent({ keepAlive: false }),
+  headers: {
+    "Content-Type": "application/json",
+    Connection: "close",
+  },
+});
+
+async function fetchRecommendations(payload: any, attempts = 3) {
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    try {
+      const response = await axiosClient.post(
+        "https://networthchat.wstf.tech/chat",
+        payload
+      );
+      return response;
+    } catch (error: any) {
+      console.error(
+        `Recommendation API call failed (attempt ${attempt}/${attempts})`,
+        error?.code || error?.message
+      );
+      if (attempt < attempts) await sleep(1000 * attempt);
+    }
+  }
+  return null;
+}
 
 // Start command
 bot.command("start", async (ctx) => {
@@ -21,24 +74,35 @@ bot.command("start", async (ctx) => {
 // Handle user messages
 bot.on("message", async (ctx) => {
   const userMessage = ctx.message.text;
-  console.log(`Received message from ${ctx.chat.id}: ${userMessage}`, userHistory.get(ctx.chat.id));
-  const response = await axios.post(
-    "https://networthchat.wstf.tech/chat",
-    {
-      chat_history: userHistory.get(ctx.chat.id) || [],
-      message: userMessage,
-      isCards: true,
-      preferences: {},
-      ownCardData: {},
-    },
-    {
-      headers: {
-        "Content-Type": "application/json",
-      },
-    }
+
+  // Text-only guard
+  if (!userMessage || typeof userMessage !== "string") {
+    await ctx.reply("Please send a text message describing your spending preferences.");
+    return;
+  }
+
+  console.log(
+    `Received message from ${ctx.chat.id}: ${userMessage}`,
+    userHistory.get(ctx.chat.id)
   );
 
-  const reply = response.data.reply;
+  // Call external API with retry + timeout
+  const response = await fetchRecommendations({
+    chat_history: userHistory.get(ctx.chat.id) || [],
+    message: userMessage,
+    isCards: true,
+    preferences: {},
+    ownCardData: {},
+  });
+
+  if (!response) {
+    await ctx.reply(
+      "I'm having trouble reaching the recommendation service right now. Please try again in a moment."
+    );
+    return;
+  }
+
+  const reply = response.data?.reply || {};
 
   // 1️⃣ Response Text
   if (reply.responseText) {
@@ -99,7 +163,8 @@ ${detailsMessage}
   // Update chat history (keep last 2 messages only for conversation)
   const chatHistory = userHistory.get(ctx.chat.id) || [];
   chatHistory.push({ role: "user", content: userMessage });
-  chatHistory.push({ role: "bot", content: reply || "" });
+  const botContent = typeof reply?.responseText === "string" ? reply.responseText : "";
+  chatHistory.push({ role: "bot", content: botContent });
   userHistory.set(ctx.chat.id, chatHistory.slice(-2));
 });
 
@@ -131,4 +196,23 @@ ${detailsMessage}
 // });
 
 
-bot.start();
+// Simple health check command to test the external API quickly
+bot.command("health", async (ctx) => {
+  const res = await fetchRecommendations({
+    chat_history: [],
+    message: "ping",
+    isCards: false,
+    preferences: {},
+    ownCardData: {},
+  }, 1);
+  if (res) {
+    await ctx.reply("OK: recommendation API reachable.");
+  } else {
+    await ctx.reply("DOWN: recommendation API not responding.");
+  }
+});
+
+// Drop any pending updates on restart to reduce conflicts after nodemon restarts
+bot.start({ drop_pending_updates: true }).catch((e) => {
+  console.error("Failed to start bot", e);
+});

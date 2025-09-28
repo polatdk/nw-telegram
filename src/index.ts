@@ -9,6 +9,7 @@ dotenv.config();
 declare const require: any;
 const fs: any = require("fs");
 const path: any = require("path");
+const crypto: any = require("crypto");
 
 const userHistory = new Map(); // To store user chat history
 const suggestionsMap = new Map(); // To map suggestions to their indices
@@ -73,6 +74,7 @@ type FeedbackEntry = { likes: number; dislikes: number };
 type PersistedState = {
   favorites: Record<string, FavoriteCard[]>;
   feedback: Record<string, Record<string, FeedbackEntry>>;
+  cardIndex: Record<string, any>; // id -> card snapshot for callback lookup
 };
 
 const DATA_DIR = path.join(process.cwd(), "data");
@@ -95,12 +97,13 @@ function loadState(): PersistedState {
       return {
         favorites: parsed.favorites || {},
         feedback: parsed.feedback || {},
+        cardIndex: parsed.cardIndex || {},
       } as PersistedState;
     }
   } catch (e) {
     console.error("Failed to load state file", e);
   }
-  return { favorites: {}, feedback: {} };
+  return { favorites: {}, feedback: {}, cardIndex: {} };
 }
 
 function saveState(state: PersistedState) {
@@ -119,6 +122,34 @@ function toCardSlug(card: any): string {
   const issuer = (card?.issuer || "").toString();
   const name = (card?.cardName || "").toString();
   return `${issuer}|${name}`;
+}
+
+function toCardId(card: any): string {
+  const slug = toCardSlug(card);
+  return crypto.createHash("sha1").update(slug).digest("hex");
+}
+
+function snapshotCard(card: any) {
+  // keep only useful fields for favorites list; include details for future
+  return {
+    cardName: card?.cardName,
+    issuer: card?.issuer,
+    network: card?.network,
+    networkTier: card?.networkTier,
+    details: card?.details || {},
+  };
+}
+
+function indexCard(card: any) {
+  const id = toCardId(card);
+  // limit index size to avoid unbounded growth
+  const keys = Object.keys(botState.cardIndex);
+  if (keys.length > 500) {
+    // remove oldest ~50 entries arbitrarily by iteration order
+    for (let i = 0; i < 50 && i < keys.length; i++) delete botState.cardIndex[keys[i]];
+  }
+  botState.cardIndex[id] = snapshotCard(card);
+  return id;
 }
 
 // Start command
@@ -201,10 +232,12 @@ ${detailsMessage}
 
     const thisIndex = collectedCards.length;
     collectedCards.push(card);
+    const id = indexCard(card);
+    saveState(botState);
     const keyboard = new InlineKeyboard()
-      .text("⭐ Save", `fav_save_${thisIndex}`)
-      .text("👍", `fb_like_${thisIndex}`)
-      .text("👎", `fb_dislike_${thisIndex}`);
+      .text("⭐ Save", `fav_save_${id}`)
+      .text("👍", `fb_like_${id}`)
+      .text("👎", `fb_dislike_${id}`);
 
     await ctx.reply(cardMessage.trim(), { parse_mode: "HTML", reply_markup: keyboard });
   }
@@ -249,17 +282,21 @@ bot.on("callback_query:data", async (ctx) => {
   const chatIdStr = String(chatIdSafe);
   const lastCards = lastCardsByChat.get(Number(chatIdSafe)) || [];
   const parseIndex = (prefix: string) => parseInt(data.replace(prefix, ""), 10);
+  const parseId = (prefix: string) => data.substring(prefix.length);
 
   try {
     if (data.startsWith("fav_save_")) {
-      const idx = parseIndex("fav_save_");
-      const card = lastCards[idx];
+      const suffix = parseId("fav_save_");
+      const maybeIndex = Number(suffix);
+      const card = Number.isFinite(maybeIndex)
+        ? lastCards[maybeIndex]
+        : botState.cardIndex[suffix];
       if (!card) {
         await ctx.answerCallbackQuery({ text: "Card not found.", show_alert: true });
         return;
       }
       const list = botState.favorites[chatIdStr] || [];
-      const slug = toCardSlug(card);
+      const slug = toCardId(card);
       const exists = list.some((c: any) => toCardSlug(c) === slug);
       if (!exists) {
         list.push(card);
@@ -271,16 +308,21 @@ bot.on("callback_query:data", async (ctx) => {
     }
 
     if (data.startsWith("fb_like_") || data.startsWith("fb_dislike_")) {
-      const idx = data.startsWith("fb_like_") ? parseIndex("fb_like_") : parseIndex("fb_dislike_");
-      const card = lastCards[idx];
+      const like = data.startsWith("fb_like_");
+      const prefix = like ? "fb_like_" : "fb_dislike_";
+      const suffix = parseId(prefix);
+      const maybeIndex = Number(suffix);
+      const card = Number.isFinite(maybeIndex)
+        ? lastCards[maybeIndex]
+        : botState.cardIndex[suffix];
       if (!card) {
         await ctx.answerCallbackQuery({ text: "Card not found.", show_alert: true });
         return;
       }
-      const slug = toCardSlug(card);
+      const slug = toCardId(card);
       botState.feedback[chatIdStr] = botState.feedback[chatIdStr] || {};
       const entry = botState.feedback[chatIdStr][slug] || { likes: 0, dislikes: 0 };
-      if (data.startsWith("fb_like_")) entry.likes += 1; else entry.dislikes += 1;
+      if (like) entry.likes += 1; else entry.dislikes += 1;
       botState.feedback[chatIdStr][slug] = entry;
       saveState(botState);
       await ctx.answerCallbackQuery({ text: "Thanks for the feedback!" });

@@ -4,6 +4,8 @@ A Telegram bot built with `grammy` that helps users discover suitable credit car
 
 ### Features
 - **/start**: Greets the user and kicks off the flow
+- **/favorites**: List and manage saved cards (⭐ via inline buttons)
+- **Feedback**: Inline 👍/👎 on each card; signals persisted locally
 - **/health**: Simple reachability check for the recommendations API
 - Robust API calling with retries and timeouts
 - Helper script to send ad‑hoc messages via Bot API
@@ -42,6 +44,7 @@ The bot registers handlers and starts polling with `drop_pending_updates: true`.
 
 ### Commands
 - `/start` – Welcomes the user and asks about spending preferences
+- `/favorites` – Shows saved cards with remove buttons
 - `/health` – Pings the recommendation service and replies with status
 
 ### Send a message via script
@@ -59,10 +62,14 @@ Notes:
 ```
 src/            # Bot implementation (TypeScript)
 scripts/        # Utilities (e.g., sendMessage.js)
+data/           # Local JSON persistence (state.json) for favorites/feedback
 ```
 
 ### Environment variables
 - `BOT_TOKEN` – Telegram bot token
+
+### Data persistence
+- Favorites and feedback are stored in `data/state.json`. This is a lightweight, file‑based store that survives restarts. Delete the file to reset all saved state.
 
 ### Troubleshooting
 - Missing token: ensure `BOT_TOKEN` is present in `.env`

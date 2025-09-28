@@ -5,6 +5,11 @@ import http from "http";
 import https from "https";
 dotenv.config();
 
+// Minimal Node interop without @types/node
+declare const require: any;
+const fs: any = require("fs");
+const path: any = require("path");
+
 const userHistory = new Map(); // To store user chat history
 const suggestionsMap = new Map(); // To map suggestions to their indices
 const token = process.env.BOT_TOKEN;
@@ -60,6 +65,62 @@ async function fetchRecommendations(payload: any, attempts = 3) {
   return null;
 }
 
+// ------------------------------
+// Lightweight JSON persistence
+// ------------------------------
+type FavoriteCard = any;
+type FeedbackEntry = { likes: number; dislikes: number };
+type PersistedState = {
+  favorites: Record<string, FavoriteCard[]>;
+  feedback: Record<string, Record<string, FeedbackEntry>>;
+};
+
+const DATA_DIR = path.join(process.cwd(), "data");
+const STATE_FILE = path.join(DATA_DIR, "state.json");
+
+function ensureDataDir() {
+  try {
+    if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+  } catch (e) {
+    console.error("Failed to ensure data directory", e);
+  }
+}
+
+function loadState(): PersistedState {
+  ensureDataDir();
+  try {
+    if (fs.existsSync(STATE_FILE)) {
+      const raw = fs.readFileSync(STATE_FILE, "utf8");
+      const parsed = JSON.parse(raw);
+      return {
+        favorites: parsed.favorites || {},
+        feedback: parsed.feedback || {},
+      } as PersistedState;
+    }
+  } catch (e) {
+    console.error("Failed to load state file", e);
+  }
+  return { favorites: {}, feedback: {} };
+}
+
+function saveState(state: PersistedState) {
+  try {
+    ensureDataDir();
+    fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2), "utf8");
+  } catch (e) {
+    console.error("Failed to save state file", e);
+  }
+}
+
+const botState: PersistedState = loadState();
+const lastCardsByChat = new Map<number, any[]>();
+
+function toCardSlug(card: any): string {
+  const issuer = (card?.issuer || "").toString();
+  const name = (card?.cardName || "").toString();
+  return `${issuer}|${name}`;
+}
+
 // Start command
 bot.command("start", async (ctx) => {
   const chatId = ctx.chat.id;
@@ -109,8 +170,9 @@ bot.on("message", async (ctx) => {
     await ctx.reply(reply.responseText);
   }
   // console.log("Reply from API:", reply);
-  // 2️⃣ Cards (tabular style using Markdown)
+  // 2️⃣ Cards (tabular style using Markdown) + inline actions
   if (reply.cards && reply.cards.length > 0) {
+  const collectedCards: any[] = [];
   for (const card of reply.cards) {
     const details = card.details || {};
 
@@ -137,8 +199,16 @@ Network: ${card.network} (${card.networkTier})
 ${detailsMessage}
     `;
 
-    await ctx.reply(cardMessage.trim(), { parse_mode: "HTML" });
+    const thisIndex = collectedCards.length;
+    collectedCards.push(card);
+    const keyboard = new InlineKeyboard()
+      .text("⭐ Save", `fav_save_${thisIndex}`)
+      .text("👍", `fb_like_${thisIndex}`)
+      .text("👎", `fb_dislike_${thisIndex}`);
+
+    await ctx.reply(cardMessage.trim(), { parse_mode: "HTML", reply_markup: keyboard });
   }
+  lastCardsByChat.set(ctx.chat.id, collectedCards);
 }
 
 
@@ -166,6 +236,103 @@ ${detailsMessage}
   const botContent = typeof reply?.responseText === "string" ? reply.responseText : "";
   chatHistory.push({ role: "bot", content: botContent });
   userHistory.set(ctx.chat.id, chatHistory.slice(-2));
+});
+
+// Handle inline button clicks (favorites and feedback)
+bot.on("callback_query:data", async (ctx) => {
+  const data = ctx.callbackQuery.data;
+  const chatIdSafe = ctx.chat?.id || ctx.callbackQuery.message?.chat.id;
+  if (!chatIdSafe) {
+    await ctx.answerCallbackQuery({ text: "Chat not found.", show_alert: true });
+    return;
+  }
+  const chatIdStr = String(chatIdSafe);
+  const lastCards = lastCardsByChat.get(Number(chatIdSafe)) || [];
+  const parseIndex = (prefix: string) => parseInt(data.replace(prefix, ""), 10);
+
+  try {
+    if (data.startsWith("fav_save_")) {
+      const idx = parseIndex("fav_save_");
+      const card = lastCards[idx];
+      if (!card) {
+        await ctx.answerCallbackQuery({ text: "Card not found.", show_alert: true });
+        return;
+      }
+      const list = botState.favorites[chatIdStr] || [];
+      const slug = toCardSlug(card);
+      const exists = list.some((c: any) => toCardSlug(c) === slug);
+      if (!exists) {
+        list.push(card);
+        botState.favorites[chatIdStr] = list;
+        saveState(botState);
+      }
+      await ctx.answerCallbackQuery({ text: exists ? "Already in favorites" : "Saved to favorites" });
+      return;
+    }
+
+    if (data.startsWith("fb_like_") || data.startsWith("fb_dislike_")) {
+      const idx = data.startsWith("fb_like_") ? parseIndex("fb_like_") : parseIndex("fb_dislike_");
+      const card = lastCards[idx];
+      if (!card) {
+        await ctx.answerCallbackQuery({ text: "Card not found.", show_alert: true });
+        return;
+      }
+      const slug = toCardSlug(card);
+      botState.feedback[chatIdStr] = botState.feedback[chatIdStr] || {};
+      const entry = botState.feedback[chatIdStr][slug] || { likes: 0, dislikes: 0 };
+      if (data.startsWith("fb_like_")) entry.likes += 1; else entry.dislikes += 1;
+      botState.feedback[chatIdStr][slug] = entry;
+      saveState(botState);
+      await ctx.answerCallbackQuery({ text: "Thanks for the feedback!" });
+      return;
+    }
+
+    if (data.startsWith("fav_remove_")) {
+      const idx = parseIndex("fav_remove_");
+      const list = botState.favorites[chatIdStr] || [];
+      if (idx >= 0 && idx < list.length) {
+        list.splice(idx, 1);
+        botState.favorites[chatIdStr] = list;
+        saveState(botState);
+
+        if (ctx.callbackQuery.message) {
+          if (list.length === 0) {
+            await ctx.editMessageText("You have no saved favorites.");
+          } else {
+            const newText = `<b>Your saved cards:</b>\n\n` + list
+              .map((c: any, i: number) => `${i + 1}. ${c.cardName} — ${c.issuer} (${c.network})`)
+              .join("\n");
+            const kb = new InlineKeyboard();
+            list.forEach((_: any, i: number) => kb.text(`🗑 Remove ${i + 1}`, `fav_remove_${i}`).row());
+            await ctx.editMessageText(newText, { parse_mode: "HTML", reply_markup: kb });
+          }
+        }
+        await ctx.answerCallbackQuery({ text: "Removed" });
+      } else {
+        await ctx.answerCallbackQuery({ text: "Not found" });
+      }
+      return;
+    }
+  } catch (e) {
+    console.error("Callback handler error", e);
+    try { await ctx.answerCallbackQuery({ text: "Something went wrong", show_alert: true }); } catch {}
+  }
+});
+
+// List favorites
+bot.command("favorites", async (ctx) => {
+  const chatIdStr = String(ctx.chat.id);
+  const list = botState.favorites[chatIdStr] || [];
+  if (list.length === 0) {
+    await ctx.reply("You have no saved favorites yet. Tap ⭐ Save on a card to add it.");
+    return;
+  }
+  const text = `<b>Your saved cards:</b>\n\n` + list
+    .map((c: any, i: number) => `${i + 1}. ${c.cardName} — ${c.issuer} (${c.network})`)
+    .join("\n");
+  const kb = new InlineKeyboard();
+  list.forEach((_: any, i: number) => kb.text(`🗑 Remove ${i + 1}`, `fav_remove_${i}`).row());
+  await ctx.reply(text, { parse_mode: "HTML", reply_markup: kb });
 });
 
 // Handle suggestion button clicks

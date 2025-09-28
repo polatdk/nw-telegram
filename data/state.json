@@ -1,10 +1,194 @@
 {
-  "favorites": {},
+  "favorites": {
+    "7130759004": [
+      {
+        "cardName": "Webshopper Credit Card",
+        "issuer": "Emirates NBD",
+        "network": "Mastercard",
+        "networkTier": null,
+        "details": {
+          "Eligibility": "Monthly income AED 12,000+, age 21+, UAE residents with valid visa and Emirates ID",
+          "Annual Fee Primary": "AED 735",
+          "Rewards": "1 Plus Point for every AED 200 spent on online purchases only",
+          "Additional Benefits": "Card exclusively for online shopping, enhanced security, Credit Shield Pro insurance"
+        }
+      },
+      {
+        "cardName": "Darna Visa Signature Credit Card",
+        "issuer": "Emirates NBD",
+        "network": "Visa",
+        "networkTier": "Signature",
+        "details": {
+          "AnnualFeePrimaryCard": "AED 315",
+          "AnnualFeeSupplementaryFirstTwo": "Free",
+          "AnnualFeeSupplementaryAdditional": "Free",
+          "RewardProgram": "Earn 7.5% back at Aldar destinations, 1% outside Aldar",
+          "PrimarySpendingCategories": "Dining, Entertainment",
+          "WelcomeOffers": "No",
+          "EligibilityIncomeRequirement": "AED 12,000 monthly",
+          "EligibilityResidency": "UAE Resident"
+        }
+      }
+    ]
+  },
   "feedback": {
     "7130759004": {
       "Commercial Bank International|Rewards Platinum Credit Card": {
         "likes": 0,
         "dislikes": 1
+      },
+      "fc6882d17a5e45fce83e3b261356ad793e59ce90": {
+        "likes": 1,
+        "dislikes": 0
+      },
+      "6dd986af054965bab833f718258dd8b0e8f87fa4": {
+        "likes": 1,
+        "dislikes": 0
+      },
+      "5c767c25e6726e0b847c961f377fd7f83ac89fc2": {
+        "likes": 0,
+        "dislikes": 1
+      },
+      "4ffe4360df30d2947c08f2334aa2491d60e2d877": {
+        "likes": 1,
+        "dislikes": 0
+      }
+    }
+  },
+  "cardIndex": {
+    "fc6882d17a5e45fce83e3b261356ad793e59ce90": {
+      "cardName": "Webshopper Credit Card",
+      "issuer": "Emirates NBD",
+      "network": "Mastercard",
+      "networkTier": null,
+      "details": {
+        "Eligibility Income Requirement Monthly AED Salaried": "12000",
+        "Eligibility Income Requirement Monthly AED Non-Salaried": "12000",
+        "Eligibility Age Minimum": "21 years",
+        "Eligibility Residency": "UAE Resident with valid visa and Emirates ID",
+        "Annual Fee Primary Card AED": "735",
+        "APR Purchases": "39.00%",
+        "Interest Free Period": "55 days",
+        "Reward Program": "1 Plus Point for every AED 200 spent on online purchases",
+        "Key Features": "Card can only be used for online purchases; Card number is printed (not embossed) for added security; Cannot be used at merchant terminals or ATMs",
+        "Additional Benefits": "Includes Credit Shield Pro insurance for enhanced protection"
+      }
+    },
+    "22119d89148216b2b4ce12e4eaab717a851f89b4": {
+      "cardName": "CBD Visa Platinum Shopping Credit Card",
+      "issuer": "Commercial Bank of Dubai",
+      "network": "Visa",
+      "networkTier": "Platinum",
+      "details": {
+        "Eligibility": "Monthly income AED 5,000+, age 21-63, UAE residents",
+        "Annual Fee Primary": "Free for life",
+        "Cashback Rates": "Up to 10% on department stores, 5% on electronics/jewellery/furniture, 1% on other retail",
+        "Minimum Monthly Spend for Cashback": "AED 1,000",
+        "Annual Cashback Cap": "AED 10,000",
+        "Additional Benefits": "50% cinema ticket discount with AED 2,000 monthly spend; lifestyle & dining offers via CBD and Entertainer apps; purchase protection and extended warranty"
+      }
+    },
+    "1467914198f8c880a8c840b1acef70e5b7b434bb": {
+      "cardName": "CITI PRESTIGE",
+      "issuer": "Citibank",
+      "network": "Mastercard",
+      "networkTier": "World Elite",
+      "details": {
+        "Annual Fee Primary Card": "AED 1,500",
+        "APR Purchases": "42%",
+        "Interest Free Period (Days)": "55",
+        "Cash Advance Fee": "3% of amount or AED 99 fixed",
+        "Late Payment Fee": "AED 230",
+        "Foreign Currency Processing Fee": "2.99%",
+        "Welcome Offer": "AED 750 cashback on minimum spend of AED 20,000 in 90 days",
+        "Reward Points": "Earn 3 points per $1 on non AED spend and 2 points per $1 on local spend",
+        "Additional Benefits": "4th night free hotel stays worldwide, unlimited golf weekdays, airport lounge access (14 visits/year), 4 airport rides/year, movie tickets BOGO, discounts on Talabat, and more",
+        "Eligibility Income Requirement": "Minimum monthly AED 30,000 (salaried or non-salaried), UAE residency and salary account IBAN required"
+      }
+    },
+    "6dd986af054965bab833f718258dd8b0e8f87fa4": {
+      "cardName": "Darna Visa Signature Credit Card",
+      "issuer": "Emirates NBD",
+      "network": "Visa",
+      "networkTier": "Signature",
+      "details": {
+        "AnnualFeePrimaryCard": "AED 315",
+        "AnnualFeeSupplementaryFirstTwo": "Free",
+        "AnnualFeeSupplementaryAdditional": "Free",
+        "RewardProgram": "Earn 7.5% back at Aldar destinations, 1% outside Aldar",
+        "PrimarySpendingCategories": "Dining, Entertainment",
+        "WelcomeOffers": "No",
+        "EligibilityIncomeRequirement": "AED 12,000 monthly",
+        "EligibilityResidency": "UAE Resident"
+      }
+    },
+    "9dafc778d2a78874319383714b753bb21e5913dc": {
+      "cardName": "Emirates Islamic Cashback Credit Card",
+      "issuer": "Emirates Islamic",
+      "network": "Visa",
+      "networkTier": "Platinum",
+      "details": {
+        "Eligibility Income Requirement (Salaried monthly)": "AED 5,000",
+        "Eligibility Income Requirement (Non-Salaried monthly)": "AED 5,000",
+        "Eligibility Age Minimum": "21 years",
+        "Fees Annual Fee Primary Card": "AED 367.50",
+        "Fees Annual Fee Supplementary First Two": "Waived",
+        "APR Purchases": "3.49% monthly profit rate (~46% APR)",
+        "Cashback Electronics and Telecom": "5% (capped at AED 100 per month each)",
+        "Cashback All Other Spends": "Up to 1%",
+        "Additional Rewards": "Cash on Call, Balance Transfer at 0% for 6 months, Easy Payment Plan, ENTERTAINER offers"
+      }
+    },
+    "5c767c25e6726e0b847c961f377fd7f83ac89fc2": {
+      "cardName": "Mashreq Cashback Credit Card",
+      "issuer": "Mashreq Bank",
+      "network": "Visa",
+      "networkTier": "Platinum",
+      "details": {
+        "Eligibility Income Requirement (Salaried monthly)": "AED 5,000",
+        "Eligibility Income Requirement (Non-Salaried monthly)": "AED 5,000",
+        "Eligibility Age Minimum": "21 years",
+        "Fees Annual Fee Primary Card": "No annual fees",
+        "APR Purchases": "46.20% per annum",
+        "Cashback Dining": "5%",
+        "Cashback Other International Spends": "1%",
+        "Cashback Local Spends": "Up to 1%",
+        "Cashback On Government/Utilities/Education/Charity/Fuel/Rental/Telecom": "0.33%",
+        "Welcome Bonus": "AED 500 for new customers on spending AED 5,000+ in first 2 months",
+        "Additional Rewards": "Dining Discounts with DragonFly & Dine, Visa MENA Offers by Entertainer"
+      }
+    },
+    "f27ff390f5defafc8b0c41ac90d476468cf3688b": {
+      "cardName": "Sanad Low Rate Platinum Credit Card",
+      "issuer": "Finance House",
+      "network": "Mastercard",
+      "networkTier": "Platinum",
+      "details": {
+        "IncomeRequirement": "Minimum monthly salary AED 12,000, UAE Nationals only",
+        "AnnualFeePrimary": "Free for life",
+        "APR": "1.25% monthly on purchases and cash advances",
+        "InterestFreePeriod": "55 days",
+        "Eligibility": "UAE Nationals, age 25+",
+        "DocumentsRequired": "Passport copy, Emirates ID, Salary certificate/payslip, 3 months bank statement, and others"
+      }
+    },
+    "4ffe4360df30d2947c08f2334aa2491d60e2d877": {
+      "cardName": "Visa Travel Mate Credit Card",
+      "issuer": "Arab Bank",
+      "network": "Visa",
+      "networkTier": "Platinum",
+      "details": {
+        "IncomeRequirement": "AED 15,000 monthly for salaried",
+        "Eligibility": "UAE Residents, Age 21+",
+        "AnnualFeePrimary": "AED 600 (Elite Program only)",
+        "Rewards": "1 point per AED local spending, 2 points per AED international spending",
+        "TravelBenefits": "0% foreign exchange commission on select currencies",
+        "PurchaseProtection": "Up to USD 7,500 per claim for theft/accidental damage",
+        "ExtendedWarranty": "Up to 12 months additional warranty",
+        "LoungeAccess": "Up to 6 free lounge visits per year starting Oct 2024",
+        "InterestFreePeriod": "Up to 52 days",
+        "CashAdvanceFee": "3% or AED 100 fixed",
+        "LatePaymentFee": "AED 230"
       }
     }
   }
